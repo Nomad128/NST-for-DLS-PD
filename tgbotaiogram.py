@@ -10,6 +10,7 @@ import os
 # import io
 from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
+from boto.s3.connection import S3Connection
 
 # import torchvision.transforms as transforms
 # from aiogram.types import I
@@ -19,6 +20,8 @@ device = "cpu"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+TOKEN = str(S3Connection(os.environ["TOKEN"]))
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
