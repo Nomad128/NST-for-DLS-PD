@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 # TOKEN = str(S3Connection(os.environ["TOKEN"]))
 
 # Initialize bot and dispatcher
-bot = Bot(token=str(TOKEN))
+bot = Bot(token=str("TOKEN"))
 dp = Dispatcher(bot)
 
 imsize = 181
