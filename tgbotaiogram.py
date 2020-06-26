@@ -10,7 +10,7 @@ import os
 # import io
 # from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
-from boto.s3.connection import S3Connection
+# from boto.s3.connection import S3Connection
 
 # import torchvision.transforms as transforms
 # from aiogram.types import I
