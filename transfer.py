@@ -1,12 +1,10 @@
 from PIL import Image
-import io
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import matplotlib.pyplot as plt
 
 import torchvision.transforms as transforms
 import torchvision.models as models
@@ -23,7 +21,8 @@ loader = transforms.Compose([
 
 
 def image_loader(image_name):
-    image = Image.open(io.BytesIO(image_name))
+    # image = Image.open(io.BytesIO(image_name))
+    image = Image.open(image_name)
     image = loader(image).unsqueeze(0)
     return image.to(device, torch.float)
 
@@ -36,7 +35,7 @@ def imshow(tensor, title=None):
     image = image.squeeze(0)  # функция для отрисовки изображения
     image = unloader(image)
     return image
-    # plt.imshow(image)
+    # plt.imshow(images)
     # if title is not None:
     #     plt.title(title)
     # plt.pause(0.001)
@@ -88,7 +87,7 @@ class Normalization(nn.Module):
     def __init__(self, mean, std):
         super(Normalization, self).__init__()
         # .view the mean and std to make them [C x 1 x 1] so that they can
-        # directly work with image Tensor of shape [B x C x H x W].
+        # directly work with images Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
         self.mean = torch.tensor(mean).view(-1, 1, 1)
         self.std = torch.tensor(std).view(-1, 1, 1)
@@ -104,6 +103,10 @@ class Normalization(nn.Module):
 class start_transfer(nn.Module):
 
     def __init__(self, style_img, content_img):
+        """
+        :type content_img: str
+        :type style_img: str
+        """
         super(start_transfer, self).__init__()
         self.style_img = image_loader(style_img)
         self.content_img = image_loader(content_img)
@@ -235,14 +238,15 @@ class start_transfer(nn.Module):
         # a last correction...
         # self.input_img.data.clamp_(0, 1)
         img = self.input_img.data.clamp_(0, 1)
-        img = unloader(img.cpu().clone().squeeze(0))
-        buffer = io.BytesIO()
-        img.save(buffer, format="PNG")
-        return (buffer.getvalue())
+        return (img)
+        # img = unloader(img.cpu().clone().squeeze(0))
+        # buffer = io.BytesIO()
+        # img.save(buffer, format="PNG")
+        # return (buffer.getvalue())
 
 # if you want to use white noise instead uncomment the below line:
 # input_img = torch.randn(content_img.data.size(), device=device)
 
-# add the original input image to the figure:
+# add the original input images to the figure:
 # plt.figure()
 # imshow(input_img, title='Input Image')

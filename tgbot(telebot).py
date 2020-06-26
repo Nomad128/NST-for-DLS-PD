@@ -1,6 +1,6 @@
 import telebot
 from telebot.types import Message
-
+# import io
 import transfer
 from settings import TOKEN
 #
@@ -12,6 +12,11 @@ bot = telebot.TeleBot(TOKEN)
 def send_welcome(message):
 	bot.reply_to(message, "Howdy, how are you doing?")
 
+def image(tensor):
+	output = transfer.unloader(tensor.cpu().clone().squeeze(0))
+	buffer = transfer.io.BytesIO()
+	output.save(buffer, format="PNG")
+	return (buffer.getvalue())
 #
 # @bot.message_handler(func=lambda message: True)
 # def echo_all(message):
@@ -25,19 +30,19 @@ def start_pic(message: Message):
 @bot.message_handler(commands=['start'])
 def start(message):
 	bot.reply_to(message, "Начнем. Первая картинка")
-	bot.register_next_step_handler(message, first_pic)
-
-def first_pic(message):
-	global style_img
-	style_img = image_loader(message)
-	bot.reply_to(message, "А теперь вторую")
-	bot.register_next_step_handler(message, second_pic)
-
-def second_pic(message):
-	global content_img
-	content_img = image_loader(message)
-	bot.reply_to(message, "Отлично")
-	bot.register_next_step_handler(message, end)
+# 	bot.register_next_step_handler(message, first_pic)
+#
+# def first_pic(message):
+# 	global style_img
+# 	style_img = image_loader(message)
+# 	bot.reply_to(message, "А теперь вторую")
+# 	bot.register_next_step_handler(message, second_pic)
+#
+# def second_pic(message):
+# 	global content_img
+# 	content_img = image_loader(message)
+# 	bot.reply_to(message, "Отлично")
+# 	bot.register_next_step_handler(message, end)
 
 # @bot.message_handler(content_types=["photo"])
 # def photo(message: Message):
@@ -70,6 +75,7 @@ def start(message: Message):
 	img = transfer.start_transfer(style_img= style_pic, content_img= content_pic)
 	# bot.send_photo(message.chat.id, output)
 	img = img.run_style_transfer()
+	img = image(img)
 	# output = transfer.unloader(output.cpu().clone().squeeze(0))
 	# buffer = transfer.io.BytesIO()
 	# output.save(buffer, format="PNG")
@@ -92,9 +98,9 @@ def start(message: Message):
 	# print( 'file.file_path =', file_info.file_path)
 	# downloaded_file = bot.download_file(file_info.file_path)
 	# print(type(downloaded_file))
-	# with open("image.jpg", 'wb') as new_file:
+	# with open("images.jpg", 'wb') as new_file:
 	# 	new_file.write(downloaded_file)
-	# bot.send_photo(message.chat.id, downloaded_file)
+	#
 
 def end(message):
 	output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
