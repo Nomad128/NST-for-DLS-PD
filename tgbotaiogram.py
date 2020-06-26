@@ -22,7 +22,7 @@ device = "cpu"
 logging.basicConfig(level=logging.INFO)
 
  # TOKEN = str(S3Connection(os.environ['TOKEN']))
-TOKEN = str(os.environ.get('TOKEN',3))
+TOKEN = str(os.environ.get('TOKEN'))
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)

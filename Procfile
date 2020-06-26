@@ -1,1 +1,1 @@
-web: python tgbotaiogram.py
+bot: python tgbotaiogram.py
