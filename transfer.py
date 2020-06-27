@@ -110,6 +110,7 @@ class start_transfer(nn.Module):
         super(start_transfer, self).__init__()
         self.style_img = image_loader(style_img)
         self.content_img = image_loader(content_img)
+
         # self.cnn = models.vgg19(pretrained=False).features.to(device).eval()
         self.cnn = torch.load("save.pth").eval()
         self.input_img = self.content_img.clone()
