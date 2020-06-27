@@ -10,6 +10,7 @@ import os
 # import io
 # from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
+
 # from boto.s3.connection import S3Connection
 
 # import torchvision.transforms as transforms
@@ -23,6 +24,7 @@ logging.basicConfig(level=logging.INFO)
 
  # TOKEN = str(S3Connection(os.environ['TOKEN']))
 TOKEN = str(os.environ.get('TOKEN'))
+
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
@@ -147,8 +149,8 @@ async def text(message: types.Message):
 
     if message.text == "5":
         user = str(message.from_user.id)
-        if os.path.exists("images/style" + user + ".jpg" ) == False:
-            await bot.send_message(message.from_user.id,"Не найдено")
+        if os.path.exists("images/style" + user + ".jpg") == False:
+            await bot.send_message(message.from_user.id, "Не найдено")
             print("5:приват не найден")
         # print(message.from_user.id)
         # print("images/style" + str(message.from_user.id) + ".jpg")
@@ -165,12 +167,13 @@ async def text(message: types.Message):
     if message.text == "6":
         if os.path.exists("images/style.jpg") == True:
             img = transfer.start_transfer(style_img="images/style.jpg",
-                                      content_img = "images/content.jpg")
+                                          content_img="images/content.jpg")
             print("6:общие фото найдены")
             await bot.send_message(message.from_user.id, "Конец")
         else:
             print("6: общие фото не найдены")
             await bot.send_message(message.from_user.id, "Конец")
+
 
 if __name__ == '__main__':
     # executor.start_polling(dp, skip_updates=True)
