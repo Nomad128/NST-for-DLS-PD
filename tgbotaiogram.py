@@ -8,7 +8,7 @@ import PIL
 import os
 # import torch, torchvision
 import io
-# from settings import TOKEN
+from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
 
 # from boto.s3.connection import S3Connection
@@ -22,13 +22,13 @@ device = "cpu"
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = str(os.environ.get('TOKEN'))
+# TOKEN = str(os.environ.get('TOKEN'))
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-imsize = 181
+imsize = transfer.imsize
 loader = transforms.Compose([
     transforms.Resize(imsize),  # нормируем размер изображения
     transforms.CenterCrop(imsize)])  # превращаем в удобный формат
@@ -39,6 +39,7 @@ def image_loader(image_name):
     image = Image.open(image_name)
     image = loader(image).unsqueeze(0)
     return image.to(device, torch.float)
+
 
 
 unloader = transforms.ToPILImage()  # тензор в кратинку
@@ -76,9 +77,17 @@ async def process_start_command(message: types.Message):
 
 @dp.message_handler(content_types=["photo"])
 async def get_photo(message: types.Message):
+    # print("messege:",message)
+    # print("messege.photo:",message.photo)
+    # print("messege.photo[-1]:",message.photo[-1])
+    # print("messege.photo[-1][-1]:",message.photo[-1].width)
+    message.photo[-1].width = imsize
+    message.photo[-1].height = imsize
     if str(message.caption).lower() in ["1", "контент"]:
         img_path = "images/content" + str(message.from_user.id) + ".jpg"
         await message.photo[-1].download(img_path)
+        print("messege.photo[-1][-1]:", message.photo[-1].width)
+
         # await bot.send_photo(message.from_user.id, photo=img)
 
     if str(message.caption).lower() in ["2", "стиль"]:
