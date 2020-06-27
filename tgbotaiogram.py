@@ -7,7 +7,7 @@ import torch
 import PIL
 import os
 # import torch, torchvision
-# import io
+import io
 # from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
 
@@ -22,7 +22,6 @@ device = "cpu"
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
- # TOKEN = str(S3Connection(os.environ['TOKEN']))
 TOKEN = str(os.environ.get('TOKEN'))
 
 # Initialize bot and dispatcher
@@ -61,7 +60,7 @@ def image(tensor):
         tensor = transfer.unloader(tensor.cpu().clone().squeeze(0))
     elif type(tensor) == str:
         tensor = Image.open(tensor)
-    buffer = transfer.io.BytesIO()
+    buffer = io.BytesIO()
     tensor.save(buffer, format="PNG")
     return (buffer.getvalue())
 
