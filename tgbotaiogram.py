@@ -69,7 +69,6 @@ def image(tensor):
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
     await message.reply("Привет!\nНапиши мне что-нибудь!\n"
-                        "3: наличие приватных изображений\n"
                         "4: общие фото\n"
                         "5: процесс с приватом\n"
                         "6: процесс с общими\n")
