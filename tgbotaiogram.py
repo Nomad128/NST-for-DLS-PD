@@ -1,22 +1,24 @@
-import logging
-import transfer
-from PIL import Image
-import os.path
-import torch
-import os
-from torchvision import transforms
 import io
-from settings import TOKEN
+import logging
+import os
+import os.path
+
+import torch
+from PIL import Image
+# from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.callback_data import CallbackData
+from torchvision import transforms
+
+import transfer
 
 device = "cpu"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# TOKEN = str(os.environ.get('TOKEN'))
+TOKEN = str(os.environ.get('TOKEN'))
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
