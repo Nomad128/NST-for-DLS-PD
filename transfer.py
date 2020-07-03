@@ -9,7 +9,7 @@ from PIL import Image
 
 device = 'cpu'
 
-imsize = 200
+imsize = 180
 # loader = transforms.Compose([
 #     transforms.Resize(imsize),  # нормируем размер изображения
 #     transforms.CenterCrop(imsize),
