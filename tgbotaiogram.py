@@ -1,28 +1,22 @@
 import logging
 import transfer
 from PIL import Image
-import torchvision.transforms as transforms
 import os.path
 import torch
-import PIL
 import os
-# import torch, torchvision
+from torchvision import transforms
 import io
-# from settings import TOKEN
+from settings import TOKEN
 from aiogram import Bot, Dispatcher, executor, types
-
-# from boto.s3.connection import S3Connection
-
-# import torchvision.transforms as transforms
-# from aiogram.types import I
-# from aiogram.types import Buffer
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.utils.callback_data import CallbackData
 
 device = "cpu"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = str(os.environ.get('TOKEN'))
+# TOKEN = str(os.environ.get('TOKEN'))
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
@@ -33,30 +27,41 @@ loader = transforms.Compose([
     transforms.Resize(imsize),  # нормируем размер изображения
     transforms.CenterCrop(imsize)])  # превращаем в удобный формат
 
+check_photo_keyboard = InlineKeyboardMarkup(  # Кнопки для проверки изображений
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="check_photo:yes"),
+            InlineKeyboardButton(text="Нет", callback_data="check_photo:no"),
+        ]
+    ]
+)
 
-def image_loader(image_name):
-    # image = Image.open(io.BytesIO(image_name))
-    image = Image.open(image_name)
-    image = loader(image).unsqueeze(0)
-    return image.to(device, torch.float)
+transfer_keyboard = InlineKeyboardMarkup(  # Кнопки для старта переноса
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="transfer:yes"),
+            InlineKeyboardButton(text="Нет", callback_data="transfer:no"),
+        ]
+    ]
+)
 
-
+check_photo_callback = CallbackData("check_photo", "answer")
+transfer_callback = CallbackData("transfer", "answer")
 
 unloader = transforms.ToPILImage()  # тензор в кратинку
 
 
-def imshow(tensor, title=None):
-    image = tensor.cpu().clone()
-    image = image.squeeze(0)  # функция для отрисовки изображения
-    image = unloader(image)
-    return image
-    # plt.imshow(images)
-    # if title is not None:
-    #     plt.title(title)
-    # plt.pause(0.001)
+async def download_resize_image(img_path: str):
+    """Рисайзим и пересохраняем изображения для экономии памяти"""
+    image = Image.open(img_path)
+    image = loader(image)
+    image.save(img_path)
+    return None
 
 
-def image(tensor):
+async def get_image(tensor):
+    """Используяется для отправки ихображений 2-ух различных типов
+    (по директории или из тензора в результате преобразования"""
     if type(tensor) == torch.Tensor:
         tensor = transfer.unloader(tensor.cpu().clone().squeeze(0))
     elif type(tensor) == str:
@@ -68,120 +73,90 @@ def image(tensor):
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
-    await message.reply("Привет!\nНапиши мне что-нибудь!\n"
-                        "4: общие фото\n"
-                        "5: процесс с приватом\n"
-                        "6: процесс с общими\n")
+    await bot.send_message(message.from_user.id, "Добрый день {}.\n"
+                                                 "Пришлите мне 2 отдельных фотографии с подписями.\n"
+                                                 "Изображение контента подпишите как 'Контент' или '1'.\n"
+                                                 "Изображение стиля подпишите 'Стиль' или '2'.\n"
+                                                 "В силу небольшого размера по памяти, изображения сжимаются до {}."
+                           .format(message.from_user.first_name, imsize))
 
 
 @dp.message_handler(content_types=["photo"])
-async def get_photo(message: types.Message):
-    # print("messege:",message)
-    # print("messege.photo:",message.photo)
-    # print("messege.photo[-1]:",message.photo[-1])
-    # print("messege.photo[-1][-1]:",message.photo[-1].width)
-    message.photo[-1].width = imsize
-    message.photo[-1].height = imsize
-    if str(message.caption).lower() in ["1", "контент"]:
-        img_path = "images/content" + str(message.from_user.id) + ".jpg"
-        await message.photo[-1].download(img_path)
-        print("messege.photo[-1][-1]:", message.photo[-1].width)
+async def download_photo(message: types.Message):
+    """Скачивает присланные фото"""
+    content_path = "images/content" + str(message.from_user.id) + ".jpg"
+    style_path = "images/style" + str(message.from_user.id) + ".jpg"
 
-        # await bot.send_photo(message.from_user.id, photo=img)
+    if str(message.caption).lower() in ["1", "контент"]:
+        await message.photo[-1].download(content_path)
+        await download_resize_image(content_path)
+        await bot.send_message(message.from_user.id, "Контент принят")
 
     if str(message.caption).lower() in ["2", "стиль"]:
-        img_path = "images/style" + str(message.from_user.id) + ".jpg"
-        await message.photo[-1].download(img_path)
+        await message.photo[-1].download(style_path)
+        await download_resize_image(style_path)
+        await bot.send_message(message.from_user.id, "Стиль принят")
 
-    if str(message.caption).lower() in ["11", "контент"]:
-        img_path = "images/content.jpg"
-        await message.photo[-1].download(img_path)
-        # await bot.send_photo(message.from_user.id, photo=img)
+    if str(message.caption).lower() not in ["1", "2", "стиль", "контент"]:
+        await bot.send_message(message.from_user.id, "Что то пошло не так.\n"
+                                                     "Повторите попытку.")
 
-    if str(message.caption).lower() in ["12", "стиль"]:
-        img_path = "images/style.jpg"
-        await message.photo[-1].download(img_path)
-
-
-@dp.message_handler(commands=["го","go"])
-async def start(message: types.Message):
-    user = str(message.from_user.id)
-    # print(message.from_user.id)
-    # print("images/style" + str(message.from_user.id) + ".jpg")
-    # print(transfer.image_loader("images/content"+str(message.from_user.id)+".jpg"))
-    img = transfer.start_transfer(style_img="images/style" + user + ".jpg",
-                                  content_img="images/content" + user + ".jpg")
-    # print(type(img.run_style_transfer()))
-    img = image(img.run_style_transfer())
-    await bot.send_message(message.from_user.id, "Готово")
-    await bot.send_photo(message.from_user.id, img)
+    elif os.path.isfile(content_path) and os.path.isfile(style_path):
+        await bot.send_message(message.from_user.id, "Оба изображения успешно приняты.\n"
+                                                     "Хотите их просмотреть?", reply_markup=check_photo_keyboard)
 
 
-# @dp.message_handler(commands=["старт"], commands_prefix="")
-# async def start(message: types.Message):
-#     user = str(message.from_user.id)
-    # print(message.from_user.id)
-    # print("images/style" + str(message.from_user.id) + ".jpg")
-    # print(transfer.image_loader("images/content"+str(message.from_user.id)+".jpg"))
-    # img = transfer.start_transfer(style_img="images/style.jpg",
-    #                               content_img="images/content.jpg")
-    # await bot.send_message(message.from_user.id, "Начал")
+@dp.callback_query_handler(check_photo_callback.filter(answer="yes"))
+async def print_photo(call: CallbackQuery):
+    """Выводит фото, если нажали кнопку вывода изображений"""
+    content_path = "images/content" + str(call.from_user.id) + ".jpg"
+    style_path = "images/style" + str(call.from_user.id) + ".jpg"
+    await call.answer(cache_time=15)
+    await bot.send_photo(call.from_user.id, await get_image(content_path), caption="Контент")
+    await bot.send_photo(call.from_user.id, await get_image(style_path), caption="Стиль")
+    await bot.send_message(call.from_user.id, "Надеюсь всё верно.\n"
+                                              "Если что то не так, перешлите другие изображения\n"
+                                              "Начать перенос?", reply_markup=transfer_keyboard)
 
 
-@dp.message_handler(content_types=["text"])
-async def text(message: types.Message):
-    if message.text == "3":
-        style_path = "images/style" + str(message.from_user.id) + ".jpg"
-        content_path = "images/content" + str(message.from_user.id) + ".jpg"
-        if os.path.exists(style_path) == True and os.path.exists(content_path) == True:
-            await bot.send_photo(message.from_user.id, image(style_path), caption="Стиль")
-            await bot.send_photo(message.from_user.id, image(content_path), caption="Контент")
-            print("3:приватные фото найдены")
-        if os.path.exists(content_path) == False and os.path.exists(content_path) == False:
-            await bot.send_message(message.from_user.id, "Нечего выводить")
-            print("3:приватные фото не найдены")
-        # await bot.send_message(message.from_user.id, "Я работаю")
+@dp.callback_query_handler(check_photo_callback.filter(answer="no"))
+async def dont_print_photo(call: CallbackQuery):
+    """Не согласились на проверку изображений
+    Предлагает начать перенос стиля"""
+    await bot.send_message(call.from_user.id, "Начать перенос стиля?", reply_markup=transfer_keyboard)
 
-    if message.text == "4":
-        style_path = "images/style.jpg"
-        content_path = "images/content.jpg"
-        if os.path.exists(style_path) == True and os.path.exists(content_path) == True:
-            await bot.send_photo(message.from_user.id, image(style_path), caption="Стиль")
-            await bot.send_photo(message.from_user.id, image(content_path), caption="Контент")
-            print("4:общие фото найдены")
-        if os.path.exists(content_path) == False and os.path.exists(content_path) == False:
-            await bot.send_message(message.from_user.id, "Нечего выводить")
-            print("4:общие фото не найдены")
-        # await bot.send_message(message.from_user.id, "Я работаю")
 
-    if message.text == "5":
-        user = str(message.from_user.id)
-        if os.path.exists("images/style" + user + ".jpg") == False:
-            await bot.send_message(message.from_user.id, "Не найдено")
-            print("5:приват не найден")
-        # print(message.from_user.id)
-        # print("images/style" + str(message.from_user.id) + ".jpg")
-        # print(transfer.image_loader("images/content"+str(message.from_user.id)+".jpg"))
-        else:
-            img = transfer.start_transfer(style_img="images/style" + user + ".jpg",
-                                          content_img="images/content" + user + ".jpg")
-            # print(type(img.run_style_transfer()))
-            # img = image(img.run_style_transfer())
-            print("5:приват найден")
-            await bot.send_message(message.from_user.id, "Нашел")
-        # await bot.send_message(message.from_user.id, "Конец")
+@dp.callback_query_handler(transfer_callback.filter(answer="yes"))
+@dp.message_handler(commands=["го", "go", "transfer"])
+async def start_transfer(message):
+    """Начинает перенос стиля"""
+    content_path = "images/content" + str(message.from_user.id) + ".jpg"
+    style_path = "images/style" + str(message.from_user.id) + ".jpg"
+    if os.path.isfile(content_path) and os.path.isfile(style_path):
+        # if isinstance(message, types.Message):
+        #     user_id = str(message.from_user.id)
+        # elif isinstance(message, CallbackQuery):
+        #     user_id = str(message.from_user.id)
+        user_id = str(message.from_user.id)
+        img = transfer.start_transfer(style_img=style_path,
+                                      content_img=content_path)
+        os.remove(style_path), os.remove(content_path)
+        await bot.send_message(user_id, "Начал перенос стиля. Ожидайте\n"
+                                        "Процесс может занять от 3-ех до 15-ти минут.")
+        img = await get_image(img.run_style_transfer())
+        await bot.send_photo(user_id, img, caption="Готово")
+    elif os.path.isfile(content_path):
+        await bot.send_message(message.from_user.id, "Изображение стиля не найдено")
+    elif os.path.isfile(style_path):
+        await bot.send_message(message.from_user.id, "Изображение контента не найдено")
+    else:
+        await bot.send_message(message.from_user.id, "Изображения не найдены")
 
-    if message.text == "6":
-        if os.path.exists("images/style.jpg") == True:
-            img = transfer.start_transfer(style_img="images/style.jpg",
-                                          content_img="images/content.jpg")
-            print("6:общие фото найдены")
-            await bot.send_message(message.from_user.id, "Конец")
-        else:
-            print("6: общие фото не найдены")
-            await bot.send_message(message.from_user.id, "Конец")
+
+@dp.callback_query_handler(transfer_callback.filter(answer="no"))
+async def not_start_transfer(call: CallbackQuery):
+    await bot.send_message(call.from_user.id, "Ну как хотите. Я предлагал")
 
 
 if __name__ == '__main__':
-    # executor.start_polling(dp, skip_updates=True)
     executor.start_polling(dp)

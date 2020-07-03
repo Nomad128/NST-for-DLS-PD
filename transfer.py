@@ -5,20 +5,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 import torchvision.transforms as transforms
-import torchvision.models as models
 
 import copy
 
 device = 'cpu'
 
 imsize = 200
-loader = transforms.Compose([
-    transforms.Resize(imsize),  # нормируем размер изображения
-    transforms.CenterCrop(imsize),
-    transforms.ToTensor()])  # превращаем в удобный формат
-
+# loader = transforms.Compose([
+#     transforms.Resize(imsize),  # нормируем размер изображения
+#     transforms.CenterCrop(imsize),
+#     transforms.ToTensor()])  # превращаем в удобный формат
+loader = transforms.ToTensor()
 
 def image_loader(image_name):
     # image = Image.open(io.BytesIO(image_name))
@@ -29,16 +27,6 @@ def image_loader(image_name):
 
 unloader = transforms.ToPILImage()  # тензор в кратинку
 
-
-def imshow(tensor, title=None):
-    image = tensor.cpu().clone()
-    image = image.squeeze(0)  # функция для отрисовки изображения
-    image = unloader(image)
-    return image
-    # plt.imshow(images)
-    # if title is not None:
-    #     plt.title(title)
-    # plt.pause(0.001)
 
 
 class ContentLoss(nn.Module):
@@ -65,7 +53,6 @@ def gram_matrix(input):
     features = input.view(batch_size * h, w * f_map_num)  # resise F_XL into \hat F_XL
 
     G = torch.mm(features, features.t())  # compute the gram product
-
     # we 'normalize' the values of the gram matrix
     # by dividing by the number of element in each feature maps.
     return G.div(batch_size * h * w * f_map_num)
@@ -97,9 +84,6 @@ class Normalization(nn.Module):
         return (img - self.mean) / self.std
 
 
-
-
-
 class start_transfer(nn.Module):
 
     def __init__(self, style_img, content_img):
@@ -114,11 +98,13 @@ class start_transfer(nn.Module):
         # self.cnn = models.vgg19(pretrained=False).features.to(device).eval()
         self.cnn = torch.load("save.pth").eval()
         self.input_img = self.content_img.clone()
+        self.optimizer = optim.LBFGS([self.input_img.requires_grad_()])
+
         self.cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406])
         self.cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225])
         self.content_layers_default = ['conv_4']
         # self.style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-        self.style_layers_default = ['conv_4','conv_5']
+        self.style_layers_default = ['conv_4', 'conv_5']
 
     def get_style_model_and_losses(self):
 
@@ -181,20 +167,11 @@ class start_transfer(nn.Module):
 
         return model, style_losses, content_losses
 
-    def get_input_optimizer(self):
-        # this line to show that input is a parameter that requires a gradient
-        # добоваляет содержимое тензора катринки в список изменяемых оптимизатором параметров
-        optimizer = optim.LBFGS([self.input_img.requires_grad_()])
-        return optimizer
-
     def run_style_transfer(self):
-        """, cnn, normalization_mean, normalization_std,
-         content_img, style_img, input_img, num_steps=500,
-        style_weight=100000, content_weight=1):"""
-        """Run the style transfer."""
+        """Начинает перенос стиля"""
         print('Building the style transfer model..')
         model, style_losses, content_losses = self.get_style_model_and_losses()
-        optimizer = self.get_input_optimizer()
+        optimizer = self.optimizer
         num_steps = 150
         style_weight = 100000 * 10
         content_weight = 1
@@ -237,18 +214,5 @@ class start_transfer(nn.Module):
 
             optimizer.step(closure)
 
-        # a last correction...
-        # self.input_img.data.clamp_(0, 1)
         img = self.input_img.data.clamp_(0, 1)
         return (img)
-        # img = unloader(img.cpu().clone().squeeze(0))
-        # buffer = io.BytesIO()
-        # img.save(buffer, format="PNG")
-        # return (buffer.getvalue())
-
-# if you want to use white noise instead uncomment the below line:
-# input_img = torch.randn(content_img.data.size(), device=device)
-
-# add the original input images to the figure:
-# plt.figure()
-# imshow(input_img, title='Input Image')
