@@ -62,7 +62,7 @@ async def download_resize_image(img_path: str):
 
 
 async def get_image(tensor):
-    """Используяется для отправки ихображений 2-ух различных типов
+    """Используяется для отправки изображений 2-ух различных типов
     (по директории или из тензора в результате преобразования"""
     if type(tensor) == torch.Tensor:
         tensor = transfer.unloader(tensor.cpu().clone().squeeze(0))
