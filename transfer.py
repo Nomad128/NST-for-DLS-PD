@@ -74,8 +74,8 @@ class Normalization(nn.Module):
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with images Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = torch.tensor(mean).view(-1, 1, 1).detach()
+        self.std = torch.tensor(std).view(-1, 1, 1).detach()
 
     def forward(self, img):
         # normalize img
@@ -96,10 +96,12 @@ class start_transfer(nn.Module):
         # self.cnn = models.vgg19(pretrained=False).features.to(device).eval()
         self.cnn = torch.load("save.pth").eval()
         self.input_img = self.content_img.clone()
+        # self.input_img = self.content_img
+
         self.optimizer = optim.LBFGS([self.input_img.requires_grad_()])
 
-        self.cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406])
-        self.cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225])
+        self.cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).clone().detach()
+        self.cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).clone().detach()
         self.content_layers_default = ['conv_4']
         # self.style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
         self.style_layers_default = ['conv_4', 'conv_5']
@@ -169,10 +171,10 @@ class start_transfer(nn.Module):
         """Начинает перенос стиля"""
         print('Building the style transfer model..')
         model, style_losses, content_losses = self.get_style_model_and_losses()
-        optimizer = self.optimizer
-        num_steps = 150
-        style_weight = 100000 * 10
-        content_weight = 1
+        # optimizer = self.optimizer
+        num_steps = 200
+        style_weight = 100000 * 1
+        content_weight = 1 * 10
         print('Optimizing..')
         run = [0]
         while run[0] <= num_steps:
@@ -182,7 +184,7 @@ class start_transfer(nn.Module):
                 # это для того, чтобы значения тензора картинки не выходили за пределы [0;1]
                 self.input_img.data.clamp_(0, 1)
 
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
                 model(self.input_img)
 
@@ -210,7 +212,7 @@ class start_transfer(nn.Module):
 
                 return style_score + content_score
 
-            optimizer.step(closure)
+            self.optimizer.step(closure)
 
         img = self.input_img.data.clamp_(0, 1)
-        return (img)
+        return img

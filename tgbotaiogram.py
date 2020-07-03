@@ -5,7 +5,10 @@ import os.path
 
 import torch
 from PIL import Image
-# from settings import TOKEN
+
+"from settings import TOKEN"
+TOKEN = str(os.environ.get('TOKEN'))
+
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.callback_data import CallbackData
@@ -17,8 +20,6 @@ device = "cpu"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-
-TOKEN = str(os.environ.get('TOKEN'))
 
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
@@ -58,7 +59,7 @@ async def download_resize_image(img_path: str):
     image = Image.open(img_path)
     image = loader(image)
     image.save(img_path)
-    return None
+    return image
 
 
 async def get_image(tensor):
@@ -135,11 +136,11 @@ async def start_transfer(message):
     content_path = "images/content" + str(message.from_user.id) + ".jpg"
     style_path = "images/style" + str(message.from_user.id) + ".jpg"
     if os.path.isfile(content_path) and os.path.isfile(style_path):
-        # if isinstance(message, types.Message):
-        #     user_id = str(message.from_user.id)
-        # elif isinstance(message, CallbackQuery):
-        #     user_id = str(message.from_user.id)
-        user_id = str(message.from_user.id)
+        if isinstance(message, types.Message):
+            user_id = str(message.from_user.id)
+        elif isinstance(message, CallbackQuery):
+            user_id = str(message.from_user.id)
+        # user_id = str(message.from_user.id)
         img = transfer.start_transfer(style_img=style_path,
                                       content_img=content_path)
         os.remove(style_path), os.remove(content_path)
@@ -148,11 +149,11 @@ async def start_transfer(message):
         img = await get_image(img.run_style_transfer())
         await bot.send_photo(user_id, img, caption="Готово")
     elif os.path.isfile(content_path):
-        await bot.send_message(message.from_user.id, "Изображение стиля не найдено")
+        await bot.send_message(user_id, "Изображение стиля не найдено")
     elif os.path.isfile(style_path):
-        await bot.send_message(message.from_user.id, "Изображение контента не найдено")
+        await bot.send_message(user_id, "Изображение контента не найдено")
     else:
-        await bot.send_message(message.from_user.id, "Изображения не найдены")
+        await bot.send_message(user_id, "Изображения не найдены")
 
 
 @dp.callback_query_handler(transfer_callback.filter(answer="no"))
