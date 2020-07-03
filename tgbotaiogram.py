@@ -21,6 +21,8 @@ device = "cpu"
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
+TOKEN = str(os.environ.get('TOKEN'))
+
 # Initialize bot and dispatcher
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
@@ -59,7 +61,7 @@ async def download_resize_image(img_path: str):
     image = Image.open(img_path)
     image = loader(image)
     image.save(img_path)
-    return image
+    return None
 
 
 async def get_image(tensor):
