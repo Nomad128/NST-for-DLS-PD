@@ -1,7 +1,8 @@
 "# NST-for-DLS-PD" 
 
 Адрес бота: @dlspd_nstbot
-https://t.me/dlspd_nstbot
+
+или https://t.me/dlspd_nstbot
 
 Использование и команды:
 
