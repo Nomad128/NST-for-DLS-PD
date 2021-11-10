@@ -30,6 +30,5 @@
 #### tgbotaiogram.py
 Основной код TG бота
 ### Контакты
-Vk для связи: https://vk.com/id81446263
 
 TG для связи: https://t.me/ponomdi
